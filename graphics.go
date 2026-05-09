@@ -6,14 +6,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
-const (
-	CellSize int     = 20
-	FontSize int     = 20
-	ZoomMin  float64 = 0.25
-	ZoomMax  float64 = 3.0
-	ZoomStep float64 = 0.05
-)
-
 type Stroke int
 
 const (
@@ -23,10 +15,10 @@ const (
 )
 
 type Graphics struct {
-	ValueColor      color.RGBA
-	BackgroundColor color.RGBA
-	Stroke          Stroke
-	StrokeOptions   vector.StrokeOptions
+	ValueColor      color.RGBA           `json:"valuecolor"`
+	BackgroundColor color.RGBA           `json:"backgroundcolor"`
+	Stroke          Stroke               `json:"stroke"`
+	StrokeOptions   vector.StrokeOptions `json:"strokeoptions"`
 }
 
 func NewDefaultCellGraphics() *Graphics {
