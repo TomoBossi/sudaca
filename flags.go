@@ -14,8 +14,14 @@ func newFlags() (*flags, error) {
 	savePath := flag.String("save-path", "", "DEFAULT \"\" - Path where the Sudoku definition will be saved. If not provided or \"\", the read-path will be used as save-path. If read-path is not provided either, saving is disabled.")
 	flag.Parse()
 
+	read := *readPath
+	save := *savePath
+	if read != "" && save == "" {
+		save = read
+	}
+
 	return &flags{
-		readPath: *readPath,
-		savePath: *savePath,
+		readPath: read,
+		savePath: save,
 	}, nil
 }

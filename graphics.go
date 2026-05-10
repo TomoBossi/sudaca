@@ -6,6 +6,17 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/vector"
 )
 
+const (
+	minZoom          = 0.1
+	maxZoom          = 5.0
+	cellSize         = 50
+	numberFontSize   = 35
+	textFontSize     = 15
+	dashedLineLength = 5
+	thermoBulbRadius = 20
+	thermoStemWidth  = 15
+)
+
 type Stroke int
 
 const (
@@ -31,6 +42,7 @@ func NewDefaultCellGraphics() *Graphics {
 		},
 	}
 }
+
 func NewDefaultGroupGraphics() *Graphics {
 	return &Graphics{
 		ValueColor:      color.RGBA{0, 0, 0, 255},
@@ -41,6 +53,7 @@ func NewDefaultGroupGraphics() *Graphics {
 		},
 	}
 }
+
 func NewDefaultKillerZoneGraphics() *Graphics {
 	return &Graphics{
 		ValueColor:      color.RGBA{200, 100, 100, 255},
@@ -49,5 +62,11 @@ func NewDefaultKillerZoneGraphics() *Graphics {
 		StrokeOptions: vector.StrokeOptions{
 			Width: 2,
 		},
+	}
+}
+
+func NewDefaultThermoGraphics() *Graphics {
+	return &Graphics{
+		ValueColor: color.RGBA{250, 200, 150, 255},
 	}
 }
