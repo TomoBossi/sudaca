@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	minZoom          = 0.1
+	minZoom          = 0.3
 	maxZoom          = 5.0
 	cellSize         = 50
 	numberFontSize   = 35
@@ -49,7 +49,7 @@ func NewDefaultGroupGraphics() *Graphics {
 		BackgroundColor: color.RGBA{255, 255, 255, 0},
 		Stroke:          Solid,
 		StrokeOptions: vector.StrokeOptions{
-			Width: 2,
+			Width: 3,
 		},
 	}
 }

@@ -150,10 +150,6 @@ func NewThermo(cellPositions []Position, graphics *Graphics) *Thermo {
 	}
 }
 
-func (t *Thermo) IsThermoCell(row, column int) bool {
-	return slices.Contains(t.Cells, Position{row, column})
-}
-
 func NewKillerZone(cellPositions []Position, graphics *Graphics) *KillerZone {
 	if graphics == nil {
 		graphics = NewDefaultKillerZoneGraphics()
@@ -300,6 +296,64 @@ func (b *Board) DeleteCell(row, column int) {
 	if rowIndex >= 0 && rowIndex < rows && columnIndex >= 0 && columnIndex < columns {
 		b.Cells[rowIndex][columnIndex] = nil
 	}
+}
+
+func (g *Group) IsGroupCell(row, column int) bool {
+	return slices.Contains(g.Cells, Position{row, column})
+}
+
+func (g *Group) LeftMostCellPosition() *Position {
+	var leftmost *Position = nil
+	leftmostColumn := 0
+	if len(g.Cells) > 0 {
+		leftmost = &g.Cells[0]
+		leftmostColumn = leftmost.Column
+		for _, cp := range g.Cells[1:] {
+			if cp.Column < leftmostColumn {
+				leftmost = &cp
+				leftmostColumn = cp.Column
+			}
+		}
+	}
+	return leftmost
+}
+
+func (b *Board) AddGroup(cellPositions []Position) *Group {
+	b.Groups = append(b.Groups, *NewGroup(cellPositions, nil))
+	return &b.Groups[len(b.Groups)-1]
+}
+
+func (b *Board) DeleteGroup(group *Group) {
+	group.Cells = []Position{}
+	b.DeleteEmptyGroups()
+}
+
+func (b *Board) GetGroup(row, column int) (*Group, int) {
+	var smallest *Group = nil
+	index := -1
+	for i, g := range b.Groups {
+		if g.IsGroupCell(row, column) {
+			if smallest == nil || len(g.Cells) < len(smallest.Cells) {
+				smallest = &g
+				index = i
+			}
+		}
+	}
+	return smallest, index
+}
+
+func (b *Board) DeleteEmptyGroups() {
+	newGroups := []Group{}
+	for _, g := range b.Groups {
+		if len(g.Cells) > 0 {
+			newGroups = append(newGroups, g)
+		}
+	}
+	b.Groups = newGroups
+}
+
+func (t *Thermo) IsThermoCell(row, column int) bool {
+	return slices.Contains(t.Cells, Position{row, column})
 }
 
 func (b *Board) AddThermo(cellPositions []Position) *Thermo {

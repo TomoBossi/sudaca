@@ -70,12 +70,19 @@ type boardState struct {
 }
 
 type editState struct {
-	fogging         bool
+	fogging bool
+
+	celling       bool
+	cellSelection *Position
+
 	thermoing       bool
 	thermoSelection *Thermo
 	thermoIndex     int
-	cellSelection   *Position
-	groupSelection  []Position
+
+	grouping            bool
+	groupSelection      *Group
+	groupCellsSelection []Position
+	groupIndex          int
 }
 type GameEditor struct {
 	screenSize area
@@ -87,6 +94,11 @@ type GameEditor struct {
 	fonts      fonts
 	showInfo   bool
 	editState  editState
+}
+
+func (g *GameEditor) resetEditState() {
+	g.editState = editState{}
+	g.resetInput()
 }
 
 func (g *GameEditor) board() *Board {
@@ -137,6 +149,7 @@ func NewGameEditor(readPath, savePath string) (*GameEditor, error) {
 			zoom: zoom{current: 1.0, min: minZoom, max: maxZoom, speed: 0.1},
 		},
 		boardState: boardState{boards: []*Board{board}, index: 0},
+		editState:  editState{celling: true},
 		fonts:      fonts{numbers: numberFontSrc, text: textFontSrc},
 		showInfo:   true,
 	}, nil
@@ -237,26 +250,9 @@ func (g *GameEditor) updateWorldCursorPosition() {
 }
 
 func (g *GameEditor) updateCellSelection() {
-	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) && !g.editState.fogging && !g.editState.thermoing {
+	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) && g.editState.celling {
 		p := g.hoveredCellPosition()
 		if g.editState.cellSelection != nil && p.Row == g.editState.cellSelection.Row && p.Column == g.editState.cellSelection.Column {
-			g.editState.cellSelection = nil
-		} else {
-			g.editState.cellSelection = &p
-		}
-		g.resetInput()
-	}
-}
-
-func (g *GameEditor) updateGroupSelection() {
-	if ebiten.IsMouseButtonPressed(ebiten.MouseButtonLeft) {
-		p := g.hoveredCellPosition()
-		if g.editState.groupSelection == nil {
-
-		} else {
-
-		}
-		if g.editState.cellSelection == nil && p.Row == g.editState.cellSelection.Row && p.Column == g.editState.cellSelection.Column {
 			g.editState.cellSelection = nil
 		} else {
 			g.editState.cellSelection = &p
@@ -275,11 +271,12 @@ func (g *GameEditor) updateState() error {
 	}
 	g.boardState.boards = append(g.boardState.boards, copy)
 	g.boardState.index++
+	g.resetInput()
 	return nil
 }
 
 func (g *GameEditor) updateDeselection() {
-	if !shift() && !ctrl() && !g.editState.fogging && !g.editState.thermoing && inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
+	if !shift() && !ctrl() && g.editState.celling && inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
 		g.editState.cellSelection = nil
 		g.editState.groupSelection = nil
 		g.resetInput()
@@ -307,7 +304,6 @@ func (g *GameEditor) updateCellValue() error {
 		} else {
 			g.board().AddCell(value, row, column, false)
 		}
-		g.resetInput()
 	}
 	return nil
 }
@@ -325,7 +321,7 @@ func (g *GameEditor) updateDigitLogger() {
 		ebiten.Key8,
 		ebiten.Key9,
 	} {
-		if !ctrl() && !shift() && !g.editState.fogging && !g.editState.thermoing && inpututil.IsKeyJustPressed(key) {
+		if !ctrl() && !shift() && g.editState.celling && inpututil.IsKeyJustPressed(key) {
 			g.input += strconv.Itoa(i)
 		}
 	}
@@ -354,7 +350,6 @@ func (g *GameEditor) updateSave() {
 
 func (g *GameEditor) updateQuit() error {
 	if !ctrl() && shift() && inpututil.IsKeyJustPressed(ebiten.KeyEscape) {
-		g.resetInput()
 		return ebiten.Termination
 	}
 	return nil
@@ -472,7 +467,7 @@ func (g *GameEditor) updateKeyboardPan() {
 }
 
 func (g *GameEditor) updateCellEditable() error {
-	if g.editState.cellSelection != nil && !g.editState.fogging && !g.editState.thermoing && !ctrl() && !shift() && inpututil.IsKeyJustPressed(ebiten.KeyE) {
+	if g.editState.cellSelection != nil && !ctrl() && !shift() && inpututil.IsKeyJustPressed(ebiten.KeyE) {
 		row, column := g.editState.cellSelection.Row, g.editState.cellSelection.Column
 		if g.board().IsValidIndex(row, column) {
 			cell := g.board().GetCell(row, column)
@@ -483,13 +478,12 @@ func (g *GameEditor) updateCellEditable() error {
 				g.board().GetCell(row, column).Editable = !cell.Editable
 			}
 		}
-		g.resetInput()
 	}
 	return nil
 }
 
 func (g *GameEditor) updateCellFunction() error {
-	if g.editState.cellSelection != nil && !g.editState.fogging && !g.editState.thermoing && !ctrl() && !shift() && inpututil.IsKeyJustPressed(ebiten.KeyX) {
+	if g.editState.cellSelection != nil && !ctrl() && !shift() && inpututil.IsKeyJustPressed(ebiten.KeyX) {
 		if err := g.updateState(); err != nil {
 			return err
 		}
@@ -499,19 +493,17 @@ func (g *GameEditor) updateCellFunction() error {
 			cell = g.board().AddCell(0, row, column, false)
 		}
 		cell.Function = !cell.Function
-		g.resetInput()
 	}
 	return nil
 }
 
 func (g *GameEditor) updateDeleteCell() error {
-	if g.editState.cellSelection != nil && !g.editState.fogging && !g.editState.thermoing && !ctrl() && !shift() && (inpututil.IsKeyJustPressed(ebiten.KeyBackspace) || inpututil.IsKeyJustPressed(ebiten.KeyDelete)) {
+	if g.editState.cellSelection != nil && !ctrl() && !shift() && (inpututil.IsKeyJustPressed(ebiten.KeyBackspace) || inpututil.IsKeyJustPressed(ebiten.KeyDelete)) {
 		if err := g.updateState(); err != nil {
 			return err
 		}
 		row, column := g.editState.cellSelection.Row, g.editState.cellSelection.Column
 		g.board().DeleteCell(row, column)
-		g.resetInput()
 	}
 	return nil
 }
@@ -519,7 +511,13 @@ func (g *GameEditor) updateDeleteCell() error {
 func (g *GameEditor) updateFogging() {
 	if g.editState.cellSelection != nil {
 		if !ctrl() && !shift() && inpututil.IsKeyJustPressed(ebiten.KeyF) {
-			g.editState.fogging = !g.editState.fogging
+			if g.editState.fogging {
+				g.resetEditState()
+				g.editState.celling = true
+			} else {
+				g.resetEditState()
+				g.editState.fogging = true
+			}
 		}
 	}
 }
@@ -584,14 +582,19 @@ func (g *GameEditor) updateCell() error {
 func (g *GameEditor) updateThermoing() {
 	if g.editState.cellSelection == nil {
 		if !ctrl() && !shift() && inpututil.IsKeyJustPressed(ebiten.KeyT) {
-			g.editState.thermoing = !g.editState.thermoing
-			g.editState.thermoSelection = nil
+			if g.editState.thermoing {
+				g.resetEditState()
+				g.editState.celling = true
+			} else {
+				g.resetEditState()
+				g.editState.thermoing = true
+			}
 		}
 	}
 }
 
 func (g *GameEditor) updatePlaceThermo() error {
-	if inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) && g.editState.thermoing && g.editState.thermoSelection == nil {
+	if !shift() && inpututil.IsMouseButtonJustPressed(ebiten.MouseButtonLeft) && g.editState.thermoing && g.editState.thermoSelection == nil {
 		p := g.hoveredCellPosition()
 		if err := g.updateState(); err != nil {
 			return err
@@ -998,7 +1001,7 @@ func (g *GameEditor) drawInfo(dst *ebiten.Image) {
 		str += "I - Toggle Info Display\n"
 		str += "\n"
 
-		if !g.editState.fogging {
+		if g.editState.celling {
 			if g.editState.cellSelection != nil {
 				if *g.editState.cellSelection == p {
 					str += "ESC/LMB Click - Deselect cell\n"
@@ -1022,21 +1025,24 @@ func (g *GameEditor) drawInfo(dst *ebiten.Image) {
 				} else {
 					str += "X - Set as function cell\n"
 				}
-			} else if !g.editState.thermoing {
+			} else {
 				str += "LMB Click - Select cell\n"
 			}
-		} else {
+		}
+
+		if g.editState.fogging {
 			str += "LMB Click - Toggle Fogger\n"
 			str += "F - Finish Fogger Update\n"
 			str += "Backspace/Del - Delete all Foggers\n"
 		}
 
 		t := g.editState.thermoSelection
-		if g.editState.cellSelection == nil && t == nil && !g.editState.thermoing {
+		if g.editState.celling && g.editState.cellSelection == nil {
 			if t == nil {
 				str += "T - Edit Thermos\n"
 			}
-		} else if g.editState.thermoing {
+		}
+		if g.editState.thermoing {
 			if t == nil {
 				str += "LMB Click - Place New Thermo\n"
 				if len(g.board().Thermos) > 0 {
@@ -1108,6 +1114,24 @@ func (g *GameEditor) drawThermos(dst *ebiten.Image) {
 	}
 }
 
+// func (g *GameEditor) drawGroups(dst *ebiten.Image) {
+// 	directions := map[]
+
+// 	for _, gr := range g.board().Groups {
+// 		if len(gr.Cells) > 0 {
+// 			var path vector.Path
+// 			leftmost := gr.LeftMostCellPosition()
+// 			start := Position{leftmost.Row + 1, leftmost.Column}
+// 			xFrom, yFrom := float32(start.Column*cellSize), float32(start.Row*cellSize)
+// 			path.MoveTo(xFrom, yFrom)
+// 			xTo, yTo := xFrom - cellSize, yTo
+// 			g.drawWorldPath(dst, path, pathOptions{
+// 				fillColor: &gr.Graphics.ValueColor,
+// 			})
+// 		}
+// 	}
+// }
+
 func (g *GameEditor) Draw(screen *ebiten.Image) {
 	dst := screen
 	g.updateScreenSize(dst)
@@ -1117,6 +1141,7 @@ func (g *GameEditor) Draw(screen *ebiten.Image) {
 	g.drawBoardBounds(dst)
 	g.drawHighlightSelection(dst)
 	g.drawCellsValues(dst)
+	// g.drawGroups(dst)
 	g.drawCellHighlightHover(dst)
 	g.drawInfo(dst)
 }
